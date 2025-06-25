@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include "maps.hpp"
+#include "maps.hpp"  // Make sure this contains allMaps, MAP_WIDTH, MAP_HEIGHT
 
 const int TILE_SIZE = 24;
 int playerRow = 0, playerCol = 0;
@@ -13,39 +13,52 @@ void selectMap() {
     int choice;
     std::cin >> choice;
 
-    if (choice < 1 || choice > allMaps.size()) {
+    if (choice < 1 || choice > static_cast<int>(allMaps.size())) {
         std::cout << "Invalid choice. Using map 1.\n";
         choice = 1;
     }
 
     currentMap = allMaps[choice - 1];
 
-   //player position findd hunxha eta
+    // Find player starting position
     for (int row = 0; row < MAP_HEIGHT; ++row) {
         for (int col = 0; col < MAP_WIDTH; ++col) {
             if (currentMap[row][col] == 'P') {
                 playerRow = row;
                 playerCol = col;
-                currentMap[row][col] = ' ';  
+                currentMap[row][col] = ' '; // Clear the tile
                 return;
             }
         }
     }
 }
-// handle input for player movement
-void handleInput() {
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))    playerRow--;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))  playerRow++;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))  playerCol--;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) playerCol++;
 
-    // Clamp within map bounds
-    if (playerRow < 0) playerRow = 0;
-    if (playerRow >= MAP_HEIGHT) playerRow = MAP_HEIGHT - 1;
-    if (playerCol < 0) playerCol = 0;
-    if (playerCol >= MAP_WIDTH) playerCol = MAP_WIDTH - 1;
+// Handle input with collision detection
+void handleInput() {
+    int newRow = playerRow;
+    int newCol = playerCol;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))    newRow--;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))  newRow++;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))  newCol--;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) newCol++;
+
+    // Check map bounds
+    if (newRow >= 0 && newRow < MAP_HEIGHT && newCol >= 0 && newCol < MAP_WIDTH) {
+        // Prevent movement into walls
+        if (currentMap[newRow][newCol] != '#') {
+            playerRow = newRow;
+            playerCol = newCol;
+
+            // Optionally eat pellets (erase them)
+            if (currentMap[newRow][newCol] == '.' || currentMap[newRow][newCol] == 'o') {
+                currentMap[newRow][newCol] = ' ';
+            }
+        }
+    }
 }
 
+// Draw map and objects
 void drawMap(sf::RenderWindow& window) {
     sf::RectangleShape wall(sf::Vector2f(TILE_SIZE, TILE_SIZE));
     wall.setFillColor(sf::Color::Blue);
@@ -58,9 +71,9 @@ void drawMap(sf::RenderWindow& window) {
 
     for (int row = 0; row < MAP_HEIGHT; ++row) {
         for (int col = 0; col < MAP_WIDTH; ++col) {
-            char tile = currentMap[row][col];
             float x = col * TILE_SIZE;
             float y = row * TILE_SIZE;
+            char tile = currentMap[row][col];
 
             switch (tile) {
             case '#':
@@ -75,7 +88,6 @@ void drawMap(sf::RenderWindow& window) {
                 powerPellet.setPosition(x + TILE_SIZE / 2 - 6, y + TILE_SIZE / 2 - 6);
                 window.draw(powerPellet);
                 break;
-                // other characters like '1','2','3','=','0' can be handled later
             default:
                 break;
             }
@@ -89,7 +101,7 @@ int main() {
     int windowWidth = MAP_WIDTH * TILE_SIZE;
     int windowHeight = MAP_HEIGHT * TILE_SIZE;
 
-    sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Pac-Man");
+    sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Pac-Man Game");
 
     sf::CircleShape pacman(TILE_SIZE / 2 - 2);
     pacman.setFillColor(sf::Color::Yellow);
